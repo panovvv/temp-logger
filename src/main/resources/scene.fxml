@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.epam.vadim_panov.NumericTextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.layout.Pane?>
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="320.0"
+  prefWidth="470.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1"
+  fx:controller="com.epam.vadim_panov.Controller">
+	<children>
+		<Button fx:id="uartConnectBtn" disable="true" layoutX="376.0" layoutY="29.0" mnemonicParsing="false"
+		  onAction="#uartConnectBtnClicked" prefHeight="25.0" prefWidth="79.0" text="Connect"/>
+		<Label layoutX="15.0" layoutY="76.0" text="Set date&amp;time:"/>
+		<Button fx:id="setTimeBtn" disable="true" layoutX="413.0" layoutY="74.0" mnemonicParsing="false"
+		  onAction="#setTimeBtnClicked" prefHeight="63.0" prefWidth="42.0" text="Set"/>
+		<Label fx:id="datetimeSystemLabel" layoutX="127.0" layoutY="76.0" prefHeight="17.0" prefWidth="228.0"/>
+		<CheckBox fx:id="offsetCheckbox" disable="true" layoutX="15.0" layoutY="110.0" mnemonicParsing="false"
+		  onAction="#offsetCheckboxChecked" text="offset"/>
+		<ToggleButton fx:id="offsetSignBtn" disable="true" layoutX="85.0" layoutY="106.0" mnemonicParsing="false"
+		  onAction="#offsetSignBtnToggled" text="+"/>
+		<NumericTextField fx:id="offsetHoursBox" disable="true" layoutX="118.0" layoutY="106.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<Label layoutX="168.0" layoutY="110.0" text=":"/>
+		<Label layoutX="227.0" layoutY="110.0" text=":"/>
+		<NumericTextField fx:id="offsetMinutesBox" disable="true" layoutX="177.0" layoutY="106.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<NumericTextField fx:id="offsetSecondsBox" disable="true" layoutX="237.0" layoutY="106.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<NumericTextField fx:id="delayDaysBox" disable="true" layoutX="14.0" layoutY="188.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<Label layoutX="14.0" layoutY="163.0" text="Take measurements every:"/>
+		<Label fx:id="daysLabel" layoutX="66.0" layoutY="192.0" text="days"/>
+		<Label fx:id="hoursLabel" layoutX="150.0" layoutY="192.0" text="hours"/>
+		<NumericTextField fx:id="delayHoursBox" disable="true" layoutX="98.0" layoutY="188.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<NumericTextField fx:id="delayMinutesBox" disable="true" layoutX="185.0" layoutY="188.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<Label fx:id="minutesLabel" layoutX="237.0" layoutY="192.0" text="minutes"/>
+		<Label fx:id="secondsLabel" layoutX="340.0" layoutY="192.0" text="seconds"/>
+		<NumericTextField fx:id="delaySecondBox" disable="true" layoutX="288.0" layoutY="188.0" prefHeight="25.0"
+		  prefWidth="44.0"/>
+		<Button fx:id="setDelayBtn" disable="true" layoutX="413.0" layoutY="166.0" mnemonicParsing="false"
+		  onAction="#setDelayBtnClicked" prefHeight="47.0" prefWidth="42.0" text="Set"/>
+		<Label layoutX="15.0" layoutY="240.0" text="Date&amp;time on logger:"/>
+		<Label fx:id="datetimeOnLoggerLabel" layoutX="140.0" layoutY="240.0" prefHeight="17.0" prefWidth="255.0"/>
+		<Button fx:id="getTimeBtn" disable="true" layoutX="413.0" layoutY="236.0" mnemonicParsing="false"
+		  onAction="#getTimeBtnClicked" prefHeight="25.0" prefWidth="42.0" text="Get"/>
+		<Button fx:id="getDelayBtn" disable="true" layoutX="413.0" layoutY="270.0" mnemonicParsing="false"
+		  onAction="#getDelayBtnClicked" prefHeight="25.0" prefWidth="42.0" text="Get"/>
+		<Label fx:id="delayOnLoggerLabel" layoutX="210.0" layoutY="274.0" prefHeight="17.0" prefWidth="183.0"/>
+		<Label layoutX="14.0" layoutY="274.0" text="Logger takes measurements every:"/>
+		<ComboBox fx:id="uartComboBox" layoutX="14.0" layoutY="29.0" onAction="#uartComboBoxChanged" prefHeight="25.0"
+		  prefWidth="282.0"/>
+		<Button fx:id="uartRefreshBtn" layoutX="312.0" layoutY="29.0" mnemonicParsing="false"
+		  onAction="#uartRefreshBtnClicked" prefHeight="25.0" prefWidth="57.0" text="Refresh"/>
+	</children>
+</Pane>
