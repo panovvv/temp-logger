@@ -29,8 +29,11 @@
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
+					<excludes>
+						<exclude>img/**</exclude>
+					</excludes>
 				</configuration>
-				<version>2.3.2</version>
+				<version>3.7.0</version>
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
