@@ -1,4 +1,4 @@
-![screenshot](https://github.com/panovvv/temp-logger/raw/master/src/main/resources/img/temp_logger_util_3.PNG?raw=true)
+![screenshot](https://github.com/panovvv/temp-logger/raw/master/img/temp_logger_util_3.PNG?raw=true)
 
 To build an executable jar, run
 `mvn clean compile assembly:single`.
