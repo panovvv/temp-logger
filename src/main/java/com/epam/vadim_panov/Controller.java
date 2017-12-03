@@ -314,9 +314,7 @@ public class Controller {
 					byte[] readBuffer = new byte[serialPort.bytesAvailable()];
 					serialPort.readBytes(readBuffer, readBuffer.length);
 					String in = new String(readBuffer);
-					if (in.contains(markingToken)) {
-						tokensReceived++;
-					}
+					tokensReceived += in.length() - in.replace(markingToken, EMPTY_STRING).length();
 					result.append(in);
 				}
 			}
