@@ -58,8 +58,7 @@ public class Controller {
 	private static final String GET_DELAY_COMMAND = "gd";
 	private static final String TIME_TOKEN = "t";
 	private static final String DELAY_TOKEN = "d";
-	private static final String SUCCESS_MESSAGE = "Success!";
-	private static final String FAILED_MESSAGE = "Failed!";
+	private static final String FAILED_TIMEOUT_MESSAGE = "Failed due to timeout!";
 
 	@FXML
 	private ComboBox<SerialPortWrapper> uartComboBox;
@@ -97,10 +96,6 @@ public class Controller {
 	@FXML
 	private Label minutesLabel;
 	@FXML
-	private NumericTextField delaySecondBox;
-	@FXML
-	private Label secondsLabel;
-	@FXML
 	private Button setDelayBtn;
 
 	@FXML
@@ -112,6 +107,8 @@ public class Controller {
 	private Label delayOnLoggerLabel;
 	@FXML
 	private Button getDelayBtn;
+
+	PopOver popOver = new PopOver();
 
 	// Non-UI variables
 	private SerialPort serialPort;
@@ -150,12 +147,10 @@ public class Controller {
 		delayDaysBox.setDisable(!isConnected);
 		delayHoursBox.setDisable(!isConnected);
 		delayMinutesBox.setDisable(!isConnected);
-		delaySecondBox.setDisable(!isConnected);
 		if (!isConnected) {
 			delayDaysBox.setText(EMPTY_STRING);
 			delayHoursBox.setText(EMPTY_STRING);
 			delayMinutesBox.setText(EMPTY_STRING);
-			delaySecondBox.setText(EMPTY_STRING);
 		}
 	}
 
@@ -189,15 +184,16 @@ public class Controller {
 	@FXML
 	void setTimeBtnClicked(ActionEvent event) {
 		if (isSerialPortOpen()) {
-			LOGGER.info("Setting time to "
+			LOGGER.info("Trying to set time to "
 				+ currentDateTimeWithOffset.format(DATETIME_FORMATTER));
 			long timestamp = currentDateTimeWithOffset.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() / 1000;
 			LOGGER.info("Timestamp: " + timestamp);
 			byte[] timestampBytes = String.format("%s%d%s", SET_TIME_PREFIX, timestamp, SET_TIME_POSTFIX).getBytes();
 			if (serialPort.writeBytes(timestampBytes, timestampBytes.length) < 0) {
-				showPopover(FAILED_MESSAGE, setTimeBtn);
+				showPopover(FAILED_TIMEOUT_MESSAGE, setTimeBtn);
 			} else {
-				showPopover(SUCCESS_MESSAGE, setTimeBtn);
+				showPopover("Successfully set time to " + currentDateTimeWithOffset.format(DATETIME_FORMATTER),
+					setTimeBtn);
 				datetimeOnLoggerLabel.setText(EMPTY_STRING);
 			}
 		}
@@ -206,25 +202,26 @@ public class Controller {
 	@FXML
 	void setDelayBtnClicked(ActionEvent event) {
 		if (isSerialPortOpen()) {
-			LOGGER.info(String.format("Set delay to %d days %d hrs %d mins %d seconds.",
+			LOGGER.info(String.format("Trying to set delay to %d days %d hrs %d minutes.",
 				delayDaysBox.getNumber(),
 				delayHoursBox.getNumber(),
-				delayMinutesBox.getNumber(),
-				delaySecondBox.getNumber()));
-			long delayInSeconds = delaySecondBox.getNumber()
-				+ delayMinutesBox.getNumber() * 60
+				delayMinutesBox.getNumber()));
+			long delayInSeconds = delayMinutesBox.getNumber() * 60
 				+ delayHoursBox.getNumber() * 60 * 60
 				+ delayDaysBox.getNumber() * 60 * 60 * 24;
 			if (delayInSeconds == 0) {
-				showPopover("Delay must a positive number!", setDelayBtn);
+				showPopover("Please specify the delay of at least 1 minute", setDelayBtn);
 				return;
 			}
 			LOGGER.info("Delay in seconds: " + delayInSeconds);
 			byte[] delayBytes = String.format("%s%d%s", SET_DELAY_PREFIX, delayInSeconds, SET_DELAY_POSTFIX).getBytes();
 			if (serialPort.writeBytes(delayBytes, delayBytes.length) < 0) {
-				showPopover(FAILED_MESSAGE, setDelayBtn);
+				showPopover(FAILED_TIMEOUT_MESSAGE, setDelayBtn);
 			} else {
-				showPopover(SUCCESS_MESSAGE, setDelayBtn);
+				showPopover("Successfully set delay to"
+						+ getHumanReadablePeriod(delayDaysBox.getNumber(), delayHoursBox.getNumber(),
+					delayMinutesBox.getNumber(), 0),
+					setDelayBtn);
 				delayOnLoggerLabel.setText(EMPTY_STRING);
 			}
 		}
@@ -242,7 +239,6 @@ public class Controller {
 			LOGGER.info("Got time from device: " + epochTime);
 			datetimeOnLoggerLabel.setText(LocalDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId
 				.systemDefault()).format(DATETIME_FORMATTER));
-			showPopover(SUCCESS_MESSAGE, getTimeBtn);
 		}
 	}
 
@@ -264,33 +260,7 @@ public class Controller {
 			int minutes = (int) (delay / 60);
 			delay -= minutes * 60;
 
-			StringBuilder delayBuilder = new StringBuilder();
-			if (days > 0) {
-				delayBuilder.append(String.format("%d day", days));
-				if (isPluralNumber(days)) {
-					delayBuilder.append("s");
-				}
-			}
-			if (hours > 0) {
-				delayBuilder.append(String.format(" %d hour", hours));
-				if (isPluralNumber(hours)) {
-					delayBuilder.append("s");
-				}
-			}
-			if (minutes > 0) {
-				delayBuilder.append(String.format(" %d minute", minutes));
-				if (isPluralNumber(minutes)) {
-					delayBuilder.append("s");
-				}
-			}
-			if (delay > 0) {
-				delayBuilder.append(String.format(" %d second", delay));
-				if (isPluralNumber((int) delay)) {
-					delayBuilder.append("s");
-				}
-			}
-			delayOnLoggerLabel.setText(delayBuilder.toString());
-			showPopover(SUCCESS_MESSAGE, getDelayBtn);
+			delayOnLoggerLabel.setText(getHumanReadablePeriod(days, hours, minutes, (int) delay));
 		}
 	}
 
@@ -349,15 +319,6 @@ public class Controller {
 		}
 	}
 
-	private boolean isPluralNumber(int n) {
-		return !((n % 10 == 1) && (n != 11));
-	}
-
-	@FXML
-	void uartComboBoxChanged(ActionEvent event) {
-
-	}
-
 	@FXML
 	void initialize() {
 		assert setTimeBtn != null : "fx:id=\"setTimeBtn\" was not injected: check your FXML file 'scene.fxml'.";
@@ -375,11 +336,9 @@ public class Controller {
 		assert offsetHoursBox != null : "fx:id=\"offsetHoursBox\" was not injected: check your FXML file 'scene.fxml'.";
 		assert setDelayBtn != null : "fx:id=\"setDelayBtn\" was not injected: check your FXML file 'scene.fxml'.";
 		assert hoursLabel != null : "fx:id=\"hoursLabel\" was not injected: check your FXML file 'scene.fxml'.";
-		assert delaySecondBox != null : "fx:id=\"delaySecondBox\" was not injected: check your FXML file 'scene.fxml'.";
 		assert getDelayBtn != null : "fx:id=\"getDelayBtn\" was not injected: check your FXML file 'scene.fxml'.";
 		assert
 			delayMinutesBox != null : "fx:id=\"delayMinutesBox\" was not injected: check your FXML file 'scene.fxml'.";
-		assert secondsLabel != null : "fx:id=\"secondsLabel\" was not injected: check your FXML file 'scene.fxml'.";
 		assert delayDaysBox != null : "fx:id=\"delayDaysBox\" was not injected: check your FXML file 'scene.fxml'.";
 		assert uartConnectBtn != null : "fx:id=\"uartConnectBtn\" was not injected: check your FXML file 'scene.fxml'.";
 		assert datetimeSystemLabel
@@ -391,6 +350,8 @@ public class Controller {
 	}
 
 	public void close() {
+		popOver.setFadeOutDuration(Duration.ZERO);
+		popOver.hide();
 		if (isSerialPortOpen()) {
 			serialPort.closePort();
 		}
@@ -431,15 +392,10 @@ public class Controller {
 	}
 
 	private boolean isSerialPortOpen() {
-		if (Objects.nonNull(serialPort) && serialPort.isOpen()) {
-			return true;
-		} else {
-			return false;
-		}
+		return Objects.nonNull(serialPort) && serialPort.isOpen();
 	}
 
 	void showPopover(String message, Node owner) {
-		PopOver popOver = new PopOver();
 		popOver.setContentNode(new VBox(new Label(EMPTY_STRING),
 			new Label(message),
 			new Label(EMPTY_STRING)));
@@ -449,6 +405,39 @@ public class Controller {
 		Timeline idlestage = new Timeline(new KeyFrame(Duration.seconds(2), event1 -> popOver.hide()));
 		idlestage.setCycleCount(1);
 		idlestage.play();
+	}
+
+	private String getHumanReadablePeriod(int days, int hours, int minutes, int seconds) {
+		StringBuilder periodBuilder = new StringBuilder();
+		if (days > 0) {
+			periodBuilder.append(String.format("%d day", days));
+			if (isPluralNumber(days)) {
+				periodBuilder.append("s");
+			}
+		}
+		if (hours > 0) {
+			periodBuilder.append(String.format(" %d hour", hours));
+			if (isPluralNumber(hours)) {
+				periodBuilder.append("s");
+			}
+		}
+		if (minutes > 0) {
+			periodBuilder.append(String.format(" %d minute", minutes));
+			if (isPluralNumber(minutes)) {
+				periodBuilder.append("s");
+			}
+		}
+		if (seconds > 0) {
+			periodBuilder.append(String.format(" %d second", seconds));
+			if (isPluralNumber(seconds)) {
+				periodBuilder.append("s");
+			}
+		}
+		return periodBuilder.toString();
+	}
+
+	private boolean isPluralNumber(int n) {
+		return !((n % 10 == 1) && (n != 11));
 	}
 
 }

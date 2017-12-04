@@ -8,22 +8,21 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    @Override
-    public void start(Stage primaryStage) throws Exception{
+	@Override
+	public void start(Stage primaryStage) throws Exception {
 		FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("scene.fxml"));
 		Parent root = loader.load();
-		Scene scene =new Scene(root, 470, 320);
-        primaryStage.setTitle("Temperature logger utility");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+		primaryStage.setTitle("Temperature logger utility");
+		primaryStage.setScene(new Scene(root));
+		primaryStage.show();
 		Controller controller = loader.getController();
 		primaryStage.setOnCloseRequest((we -> controller.close()));
 		primaryStage.show();
 		controller.start();
-    }
+	}
 
 
-    public static void main(String[] args) {
-        launch(args);
-    }
+	public static void main(String[] args) {
+		launch(args);
+	}
 }
