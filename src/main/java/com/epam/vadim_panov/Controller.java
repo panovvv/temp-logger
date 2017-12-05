@@ -6,6 +6,8 @@ import com.fazecast.jSerialComm.SerialPort;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
@@ -101,6 +103,8 @@ public class Controller {
 
 	@FXML
 	private Label datetimeOnLoggerLabel;
+	@FXML
+	private Label datetimeOnLoggerUTCLabel;
 	@FXML
 	private Button getTimeBtn;
 
@@ -238,8 +242,12 @@ public class Controller {
 
 			long epochTime = optionalTime.get();
 			LOGGER.info("Got time from device: " + epochTime);
-			datetimeOnLoggerLabel.setText(LocalDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId
-				.systemDefault()).format(DATETIME_FORMATTER));
+			ZonedDateTime deviceDT = ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
+			datetimeOnLoggerLabel.setText(String.format("%s %s",
+				deviceDT.format(DATETIME_FORMATTER),
+				ZoneOffset.systemDefault().toString()));
+			datetimeOnLoggerUTCLabel.setText(String.format("%s UTC (GMT)",
+				deviceDT.withZoneSameInstant(ZoneId.of("UTC")).format(DATETIME_FORMATTER)));
 		}
 	}
 
