@@ -41,11 +41,9 @@ public class Controller {
 	private static final int STOP_BITS = SerialPort.ONE_STOP_BIT;
 	private static final int PARITY = SerialPort.NO_PARITY;
 	private static final int SERIAL_READ_TIMEOUT_SEC = 5;
-	private static final int SERIAL_WRITE_TIMEOUT = 5000;
+	private static final int SERIAL_WRITE_TIMEOUT_MILLIS = 5000;
 
 	private static final String EMPTY_STRING = "";
-	private static final String DATETIME_PATTERN = "yyyy-MM-dd hh:mm:ss a";
-	private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_PATTERN);
 	private static final String PLUS_SIGN = "+";
 	private static final String MINUS_SIGN = "-";
 
@@ -58,7 +56,10 @@ public class Controller {
 	private static final String GET_DELAY_COMMAND = "gd";
 	private static final String TIME_TOKEN = "t";
 	private static final String DELAY_TOKEN = "d";
+
 	private static final String FAILED_TIMEOUT_MESSAGE = "Failed due to timeout!";
+	private static final String DATETIME_PATTERN = "yyyy-MM-dd hh:mm:ss a";
+	private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern(DATETIME_PATTERN);
 
 	@FXML
 	private ComboBox<SerialPortWrapper> uartComboBox;
@@ -108,7 +109,7 @@ public class Controller {
 	@FXML
 	private Button getDelayBtn;
 
-	PopOver popOver = new PopOver();
+	private final PopOver popOver = new PopOver();
 
 	// Non-UI variables
 	private SerialPort serialPort;
@@ -123,7 +124,7 @@ public class Controller {
 			serialPort = uartComboBox.getSelectionModel().getSelectedItem().getPort();
 			serialPort.setComPortParameters(BAUD_RATE, DATA_BITS, STOP_BITS, PARITY);
 			serialPort.setComPortTimeouts(TIMEOUT_WRITE_BLOCKING,
-				SERIAL_READ_TIMEOUT_SEC * 1000, SERIAL_WRITE_TIMEOUT);
+				SERIAL_READ_TIMEOUT_SEC * 1000, SERIAL_WRITE_TIMEOUT_MILLIS);
 			if (serialPort.openPort()) {
 				setSerialPortConnectedOnUI(true);
 			}
@@ -395,7 +396,7 @@ public class Controller {
 		return Objects.nonNull(serialPort) && serialPort.isOpen();
 	}
 
-	void showPopover(String message, Node owner) {
+	private void showPopover(String message, Node owner) {
 		popOver.setContentNode(new VBox(new Label(EMPTY_STRING),
 			new Label(message),
 			new Label(EMPTY_STRING)));
