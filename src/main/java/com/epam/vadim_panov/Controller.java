@@ -200,6 +200,7 @@ public class Controller {
 				showPopover("Successfully set time to " + currentDateTimeWithOffset.format(DATETIME_FORMATTER),
 					setTimeBtn);
 				datetimeOnLoggerLabel.setText(EMPTY_STRING);
+				datetimeOnLoggerUTCLabel.setText(EMPTY_STRING);
 			}
 		}
 	}
