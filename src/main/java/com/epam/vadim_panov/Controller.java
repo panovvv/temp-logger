@@ -120,6 +120,7 @@ public class Controller {
 	private Timer timeUpdater;
 
 	private LocalDateTime currentDateTimeWithOffset;
+	private ZonedDateTime dateTimeOnLogger;
 	private boolean negativeOffset = false;
 
 	@FXML
@@ -156,6 +157,10 @@ public class Controller {
 			delayDaysBox.setText(EMPTY_STRING);
 			delayHoursBox.setText(EMPTY_STRING);
 			delayMinutesBox.setText(EMPTY_STRING);
+			dateTimeOnLogger = null;
+			datetimeOnLoggerLabel.setText(EMPTY_STRING);
+			datetimeOnLoggerUTCLabel.setText(EMPTY_STRING);
+			delayOnLoggerLabel.setText(EMPTY_STRING);
 		}
 	}
 
@@ -199,8 +204,7 @@ public class Controller {
 			} else {
 				showPopover("Successfully set time to " + currentDateTimeWithOffset.format(DATETIME_FORMATTER),
 					setTimeBtn);
-				datetimeOnLoggerLabel.setText(EMPTY_STRING);
-				datetimeOnLoggerUTCLabel.setText(EMPTY_STRING);
+				dateTimeOnLogger = ZonedDateTime.of(currentDateTimeWithOffset, ZoneId.systemDefault());
 			}
 		}
 	}
@@ -228,7 +232,8 @@ public class Controller {
 						+ getHumanReadablePeriod(delayDaysBox.getNumber(), delayHoursBox.getNumber(),
 					delayMinutesBox.getNumber(), 0),
 					setDelayBtn);
-				delayOnLoggerLabel.setText(EMPTY_STRING);
+				delayOnLoggerLabel.setText(getHumanReadablePeriod(delayDaysBox.getNumber(), delayHoursBox.getNumber(),
+					delayMinutesBox.getNumber(), 0));
 			}
 		}
 	}
@@ -243,12 +248,8 @@ public class Controller {
 
 			long epochTime = optionalTime.get();
 			LOGGER.info("Got time from device: " + epochTime);
-			ZonedDateTime deviceDT = ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
-			datetimeOnLoggerLabel.setText(String.format("%s %s",
-				deviceDT.format(DATETIME_FORMATTER),
-				ZoneOffset.systemDefault().toString()));
-			datetimeOnLoggerUTCLabel.setText(String.format("%s UTC (GMT)",
-				deviceDT.withZoneSameInstant(ZoneId.of("UTC")).format(DATETIME_FORMATTER)));
+			dateTimeOnLogger = ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
+			updateLoggerTimeOnUi();
 		}
 	}
 
@@ -381,6 +382,10 @@ public class Controller {
 						.plusSeconds(negativeOffset ? -offsetSecondsBox.getNumber() : offsetSecondsBox.getNumber());
 					datetimeSystemLabel
 						.setText(currentDateTimeWithOffset.format(DATETIME_FORMATTER));
+					if (Objects.nonNull(dateTimeOnLogger)) {
+						dateTimeOnLogger = dateTimeOnLogger.plusSeconds(1);
+						updateLoggerTimeOnUi();
+					}
 				});
 			}
 		}, 0, 1000);
@@ -450,4 +455,12 @@ public class Controller {
 		return !((n % 10 == 1) && (n != 11));
 	}
 
+
+	private void updateLoggerTimeOnUi() {
+		datetimeOnLoggerLabel.setText(String.format("%s %s",
+			dateTimeOnLogger.format(DATETIME_FORMATTER),
+			ZoneOffset.systemDefault().toString()));
+		datetimeOnLoggerUTCLabel.setText(String.format("%s UTC (GMT)",
+			dateTimeOnLogger.withZoneSameInstant(ZoneId.of("UTC")).format(DATETIME_FORMATTER)));
+	}
 }
