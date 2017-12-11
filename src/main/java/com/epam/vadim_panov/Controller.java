@@ -12,7 +12,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Logger;
@@ -42,7 +41,7 @@ public class Controller {
 	private static final int DATA_BITS = 8;
 	private static final int STOP_BITS = SerialPort.ONE_STOP_BIT;
 	private static final int PARITY = SerialPort.NO_PARITY;
-	private static final int SERIAL_READ_TIMEOUT_SEC = 5;
+	private static final int SERIAL_READ_TIMEOUT_SEC = 3;
 	private static final int SERIAL_WRITE_TIMEOUT_MILLIS = 5000;
 
 	private static final String EMPTY_STRING = "";
@@ -198,14 +197,20 @@ public class Controller {
 				+ currentDateTimeWithOffset.format(DATETIME_FORMATTER));
 			long timestamp = currentDateTimeWithOffset.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() / 1000;
 			LOGGER.info("Timestamp: " + timestamp);
-			byte[] timestampBytes = String.format("%s%d%s", SET_TIME_PREFIX, timestamp, SET_TIME_POSTFIX).getBytes();
-			if (serialPort.writeBytes(timestampBytes, timestampBytes.length) < 0) {
-				showPopover(FAILED_TIMEOUT_MESSAGE, setTimeBtn);
-			} else {
-				showPopover("Successfully set time to " + currentDateTimeWithOffset.format(DATETIME_FORMATTER),
-					setTimeBtn);
-				dateTimeOnLogger = ZonedDateTime.of(currentDateTimeWithOffset, ZoneId.systemDefault());
-			}
+
+			new Thread(() -> {
+				Platform.runLater(() -> setTimeBtn.setDisable(true));
+				byte[] timestampBytes = String.format("%s%d%s", SET_TIME_PREFIX, timestamp, SET_TIME_POSTFIX)
+					.getBytes();
+				if (serialPort.writeBytes(timestampBytes, timestampBytes.length) < 0) {
+					Platform.runLater(() -> showPopover(FAILED_TIMEOUT_MESSAGE, setTimeBtn));
+				} else {
+					Platform.runLater(() -> showPopover("Successfully set time to "
+						+ currentDateTimeWithOffset.format(DATETIME_FORMATTER), setTimeBtn));
+					dateTimeOnLogger = ZonedDateTime.of(currentDateTimeWithOffset, ZoneId.systemDefault());
+				}
+				Platform.runLater(() -> setTimeBtn.setDisable(false));
+			}).start();
 		}
 	}
 
@@ -224,32 +229,50 @@ public class Controller {
 				return;
 			}
 			LOGGER.info("Delay in seconds: " + delayInSeconds);
-			byte[] delayBytes = String.format("%s%d%s", SET_DELAY_PREFIX, delayInSeconds, SET_DELAY_POSTFIX).getBytes();
-			if (serialPort.writeBytes(delayBytes, delayBytes.length) < 0) {
-				showPopover(FAILED_TIMEOUT_MESSAGE, setDelayBtn);
-			} else {
-				showPopover("Successfully set delay to"
-						+ getHumanReadablePeriod(delayDaysBox.getNumber(), delayHoursBox.getNumber(),
-					delayMinutesBox.getNumber(), 0),
-					setDelayBtn);
-				delayOnLoggerLabel.setText(getHumanReadablePeriod(delayDaysBox.getNumber(), delayHoursBox.getNumber(),
-					delayMinutesBox.getNumber(), 0));
-			}
+
+			new Thread(() -> {
+				Platform.runLater(() -> setDelayBtn.setDisable(true));
+				byte[] delayBytes = String.format("%s%d%s", SET_DELAY_PREFIX, delayInSeconds, SET_DELAY_POSTFIX)
+					.getBytes();
+				if (serialPort.writeBytes(delayBytes, delayBytes.length) < 0) {
+					Platform.runLater(() -> showPopover(FAILED_TIMEOUT_MESSAGE, setDelayBtn));
+				} else {
+					Platform.runLater(() -> {
+						delayOnLoggerLabel.setText(getHumanReadablePeriod(
+							delayDaysBox.getNumber(), delayHoursBox.getNumber(), delayMinutesBox.getNumber(), 0));
+						showPopover("Successfully set delay to" + getHumanReadablePeriod(
+							delayDaysBox.getNumber(), delayHoursBox.getNumber(), delayMinutesBox.getNumber(), 0),
+							setDelayBtn);
+					});
+				}
+				Platform.runLater(() -> setDelayBtn.setDisable(false));
+			}).start();
 		}
 	}
 
 	@FXML
 	void getTimeBtnClicked(ActionEvent event) {
 		if (isSerialPortOpen()) {
-			Optional<Long> optionalTime = sendCommandAndReceiveResponse(GET_TIME_COMMAND, getTimeBtn, TIME_TOKEN);
-			if (!optionalTime.isPresent()) {
-				return;
-			}
-
-			long epochTime = optionalTime.get();
-			LOGGER.info("Got time from device: " + epochTime);
-			dateTimeOnLogger = ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
-			updateLoggerTimeOnUi();
+			new Thread(() -> {
+				Platform.runLater(() -> getTimeBtn.setDisable(true));
+				SerialResponse response = sendCommandAndReceiveResponse(GET_TIME_COMMAND, getTimeBtn, TIME_TOKEN);
+				if (!response.getNumber().isPresent()) {
+					Platform.runLater(() -> {
+						showPopover(response.getError(), getTimeBtn);
+						getTimeBtn.setDisable(false);
+						dateTimeOnLogger = null;
+					});
+					return;
+				}
+				long epochTime = response.getNumber().get();
+				LOGGER.info("Got time from device: " + epochTime);
+				dateTimeOnLogger = ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochTime), ZoneId.systemDefault());
+				Platform.runLater(() -> {
+						updateLoggerTimeOnUi();
+						getTimeBtn.setDisable(false);
+					}
+				);
+			}).start();
 		}
 	}
 
@@ -257,29 +280,38 @@ public class Controller {
 	@FXML
 	void getDelayBtnClicked(ActionEvent event) {
 		if (isSerialPortOpen()) {
-			Optional<Long> optionalDelay = sendCommandAndReceiveResponse(GET_DELAY_COMMAND, getDelayBtn, DELAY_TOKEN);
-			if (!optionalDelay.isPresent()) {
-				return;
-			}
-
-			long delay = optionalDelay.get();
-			LOGGER.info("Got delay from device: " + delay);
-			int days = (int) (delay / (60 * 60 * 24));
-			delay -= days * (60 * 60 * 24);
-			int hours = (int) (delay / (60 * 60));
-			delay -= hours * (60 * 60);
-			int minutes = (int) (delay / 60);
-			delay -= minutes * 60;
-
-			delayOnLoggerLabel.setText(getHumanReadablePeriod(days, hours, minutes, (int) delay));
+			new Thread(() -> {
+				Platform.runLater(() -> getDelayBtn.setDisable(true));
+				SerialResponse response = sendCommandAndReceiveResponse(GET_DELAY_COMMAND, getDelayBtn, DELAY_TOKEN);
+				if (!response.getNumber().isPresent()) {
+					Platform.runLater(() -> {
+						showPopover(response.getError(), getDelayBtn);
+						getDelayBtn.setDisable(false);
+						delayOnLoggerLabel.setText(EMPTY_STRING);
+					});
+					return;
+				}
+				long delay = response.getNumber().get();
+				LOGGER.info("Got delay from device: " + delay);
+				int days = (int) (delay / (60 * 60 * 24));
+				delay -= days * (60 * 60 * 24);
+				int hours = (int) (delay / (60 * 60));
+				delay -= hours * (60 * 60);
+				int minutes = (int) (delay / 60);
+				delay -= minutes * 60;
+				int seconds = (int) delay;
+				Platform.runLater(() -> {
+					delayOnLoggerLabel.setText(getHumanReadablePeriod(days, hours, minutes, seconds));
+					getDelayBtn.setDisable(false);
+				});
+			}).start();
 		}
 	}
 
-	private Optional<Long> sendCommandAndReceiveResponse(String command, Node sender, String markingToken) {
+	private SerialResponse sendCommandAndReceiveResponse(String command, Node sender, String markingToken) {
 		if (serialPort.writeBytes(command.getBytes(), command.getBytes().length) < 0) {
-			showPopover("Can't send command!", sender);
-			LOGGER.warning("Can't send command!");
-			return Optional.empty();
+			LOGGER.warning(String.format("Can't send %s command!", command));
+			return new SerialResponse().error(String.format("Can't send %s command!", command));
 		}
 		LOGGER.info("Sent the command");
 
@@ -306,21 +338,19 @@ public class Controller {
 
 		if (tokensReceived < 2) {
 			LOGGER.warning("Received invalid string while trying to get data from device: " + result.toString());
-			showPopover("Data not received due to timeout. Check your connections and cycle the power to logger",
-				sender);
-			return Optional.empty();
+			return new SerialResponse()
+				.error("Data not received due to timeout. Check your connections and cycle the power to logger");
 		}
 
 		String numberStr = EMPTY_STRING;
 		try {
 			numberStr = result.substring(result.indexOf(markingToken) + 1, result.lastIndexOf(markingToken));
-			return Optional.of(Long.parseLong(numberStr));
+			return new SerialResponse().number(Long.parseLong(numberStr));
 		} catch (NumberFormatException nfe) {
 			LOGGER.warning("Received invalid number while trying to get time from device: " + numberStr);
-			showPopover("Time received from device is not a number!", sender);
 		}
 
-		return Optional.empty();
+		return new SerialResponse().error(String.format("Data received from device is not a number: [%s]", numberStr));
 	}
 
 	private void clearUartBuffer() {
@@ -384,8 +414,8 @@ public class Controller {
 						.setText(currentDateTimeWithOffset.format(DATETIME_FORMATTER));
 					if (Objects.nonNull(dateTimeOnLogger)) {
 						dateTimeOnLogger = dateTimeOnLogger.plusSeconds(1);
-						updateLoggerTimeOnUi();
 					}
+					updateLoggerTimeOnUi();
 				});
 			}
 		}, 0, 1000);
@@ -457,10 +487,11 @@ public class Controller {
 
 
 	private void updateLoggerTimeOnUi() {
-		datetimeOnLoggerLabel.setText(String.format("%s %s",
-			dateTimeOnLogger.format(DATETIME_FORMATTER),
-			ZoneOffset.systemDefault().toString()));
-		datetimeOnLoggerUTCLabel.setText(String.format("%s UTC (GMT)",
-			dateTimeOnLogger.withZoneSameInstant(ZoneId.of("UTC")).format(DATETIME_FORMATTER)));
+		datetimeOnLoggerLabel.setText(Objects.nonNull(dateTimeOnLogger)
+			? String.format("%s %s", dateTimeOnLogger.format(DATETIME_FORMATTER), ZoneOffset.systemDefault().toString())
+			: EMPTY_STRING);
+		datetimeOnLoggerUTCLabel.setText(Objects.nonNull(dateTimeOnLogger)
+			? String.format("%s UTC", dateTimeOnLogger.withZoneSameInstant(ZoneId.of("UTC")).format(DATETIME_FORMATTER))
+			: EMPTY_STRING);
 	}
 }
